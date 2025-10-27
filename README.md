@@ -35,8 +35,6 @@ Tired of closing the same promotional popups? Annoyed by ad banners that cover t
 
 ## Screenshots
 
-*(Insert your 1280x800 screenshots here)*
-
 | Before | After |
 | :---: | :---: |
 | ![Website before cleanup](https://github.com/buckdev68/click-to-remove-element/blob/main/before.png) | ![Website after cleanup](https://github.com/buckdev68/click-to-remove-element/blob/main/after.png) |
