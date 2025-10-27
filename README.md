@@ -15,7 +15,6 @@ Tired of closing the same promotional popups? Annoyed by ad banners that cover t
 
 * **Point and Click:** Activate the extension, hold `Ctrl` (or `Cmd` on Mac), and click to remove any element.
 * **Persistent Removal:** Just check the "Remember" box, and the extension will auto-hide those elements every time you visit the page.
-* **Precise Selection:** Use the `Q` key to expand your selection (to the parent element) and `W` to narrow it.
 * **Easy Undo:** Instantly restore any removed element from the control panel.
 * **Dynamic Content:** Automatically removes popups that appear after the page loads.
 * **Lightweight & Fast:** Won't slow down your browser.
