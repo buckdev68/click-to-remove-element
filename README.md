@@ -47,7 +47,7 @@ Tired of closing the same promotional popups? Annoyed by ad banners that cover t
 
 We respect your privacy. This extension **does not** collect any personal data. All element-hiding rules you create are stored locally in your browser.
 
-See the full [Privacy Policy here](https://[YOUR-GITHUB-USERNAME].github.io/click-to-remove-element/privacy.html).
+See the full [Privacy Policy here](https://buckdev68.github.io/click-to-remove-element/privacy.html).
 
 ## License
 
