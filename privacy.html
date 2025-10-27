@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - Click to Remove Element</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; }
+    h1 { color: #333; }
+    h2 { color: #555; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    p, li { color: #444; }
+  </style>
+</head>
+<body>
+  <h1>Privacy Policy for "Click to Remove Element"</h1>
+  <p>Last updated: October 27, 2025</p>
+
+  <h2>1. Introduction</h2>
+  <p>Thank you for using "Click to Remove Element" ("the extension," "we," "us"). We respect your privacy and are committed to protecting it.</p>
+
+  <h2>2. What Information We DO NOT Collect</h2>
+  <p>We state clearly: This extension **DOES NOT** collect, store, or transmit any personally identifiable information (PII). We do not track your browsing history, we do not log your searches, and we do not sell your data.</p>
+
+  <h2>3. Extension Data (Local Storage)</h2>
+  <p>The extension needs to store your settings to function. This includes:</p>
+  <ul>
+    <li>The CSS selectors of the elements you have chosen to hide.</li>
+    <li>A description of those elements for the UI panel.</li>
+  </ul>
+  <p>All of this data is stored **locally** on your computer using the browser's <code>chrome.storage.local</code> API. This data is **NEVER** sent over the network and is only accessible by you and the extension on your machine.</p>
+
+  <h2>4. Required Permissions</h2>
+  <ul>
+    <li><strong><code>storage</code>:</strong> Necessary to save your element-hiding rules for the "Remember" feature (as described in Section 3).</li>
+    <li><strong><code>activeTab</code>:</strong> Necessary to allow the extension to run and interact with the tab you are currently viewing when you activate it.</li>
+    <li><strong><code>content_scripts</code> on <code>&lt;all_urls&gt;</code> (with <code>"all_frames": true</code>):</strong> Necessary to apply your saved rules and run the element-selection logic on any website you visit, including within iframes (which often contain ads).</li>
+  </ul>
+
+  <h2>5. Changes to This Policy</h2>
+  <p>We may update this policy in the future. Any changes will be posted on this page.</p>
+
+  <h2>6. Contact Us</h2>
+  <p>If you have any questions, please open an "Issue" on our official GitHub repository at: <a href="https://github.com/[YOUR-GITHUB-USERNAME]/click-to-remove-element/issues">https://github.com/[YOUR-GITHUB-USERNAME]/click-to-remove-element/issues</a></p>
+</body>
+</html>
