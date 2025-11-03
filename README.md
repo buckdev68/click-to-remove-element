@@ -2,7 +2,7 @@
 
 A simple yet powerful Chrome Extension that lets you clean up webpages by permanently removing any annoying element (like ads, popups, or promotional banners).
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Available-blue?logo=google-chrome&logoColor=white)]([LINK-TO-YOUR-CHROME-STORE-LISTING])
+[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Available-blue?logo=google-chrome&logoColor=white)]([(https://chromewebstore.google.com/detail/click-to-remove-element/pngiamlghoinenkdbbppolbkhahebcfn)])
 
 [Image of Click to Remove Element in action]
 
