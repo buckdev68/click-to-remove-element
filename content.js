@@ -219,7 +219,7 @@ class ElementRemover {
     mainView.className = "remover-view";
     mainView.innerHTML = `
       <div id="remover-panel-header">
-        <h3 class="remover-header-title"> Click to Remove Element v1.0.0</h3>
+        <h3 class="remover-header-title"> Click to Remove Element v1.0.1</h3>
         <div class="remover-setting"> <button id="remover-reset-btn" class="remover-icon-btn" title="Reset rules for this domain">🔄</button>
           <button id="remover-settings-btn" class="remover-icon-btn" title="Settings">⚙️</button>
           <button id="remover-close-btn" class="remover-icon-btn" title="Close (Esc)">❌</button>
@@ -256,7 +256,7 @@ class ElementRemover {
       </div>
       <div style="flex-grow: 1;"></div>
       <div class="remover-setting-version">
-        Click to Remove Element v1.0.0 </div>
+        Click to Remove Element v1.0.1 </div>
     `;
     this.panel.appendChild(mainView);
     this.panel.appendChild(settingsView);
