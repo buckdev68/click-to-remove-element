@@ -1,303 +1,378 @@
-/* --- BIẾN TOÀN CỤC (CSS VARIABLES) --- */
+/* --- BIẾN TOÀN CỤC (CSS VARIABLES) - Filestage Inspired --- */
 :root {
-  --remover-bg-primary: #ffffff;
-  --remover-bg-secondary: #f8f9fa;
-  --remover-text-primary: #202124;
-  --remover-text-secondary: #5f6368;
-  --remover-border-color: #e0e0e0;
-  --remover-accent-color: #d93025; /* Google's red for warnings/remove */
-  --remover-highlight-color: deeppink;
-  --remover-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3),
-    0 2px 6px 2px rgba(60, 64, 67, 0.15);
-  --remover-radius: 8px;
+  --remover-bg-primary: #ffffff; /* White background */
+  --remover-bg-secondary: #f7f8fa; /* Very light grey for sections */
+  --remover-text-primary: #1a202c; /* Dark grey text */
+  --remover-text-secondary: #718096; /* Lighter grey text */
+  --remover-border-color: #e2e8f0; /* Light grey border */
+  --remover-accent-color: #4299e1; /* Blue accent (e.g., for hover, links) */
+  --remover-danger-color: #e53e3e; /* Red for destructive actions (Undo) */
+  --remover-highlight-color: deeppink; /* Keep selection highlight vibrant */
+  --remover-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06); /* Softer shadow */
+  --remover-radius: 6px; /* Slightly softer radius */
+  --remover-font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 /* --- HIGHLIGHT --- */
 .remover-highlight {
   outline: 2px solid var(--remover-highlight-color) !important;
-  background-color: rgba(255, 20, 147, 0.2) !important;
+  background-color: rgba(
+    255,
+    20,
+    147,
+    0.15
+  ) !important; /* Slightly less opaque */
   cursor: pointer !important;
+  /* Reset */
+  box-shadow: none !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* --- BẢNG ĐIỀU KHIỂN CHÍNH (PANEL) --- */
 #remover-panel {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 320px;
-  max-height: 500px; /* Limit maximum height */
-  background-color: var(--remover-bg-primary);
-  border-radius: var(--remover-radius);
-  box-shadow: var(--remover-shadow);
-  z-index: 2147483647;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  color: var(--remover-text-primary);
-  display: flex; /* Enable flexbox */
-  flex-direction: column; /* Stack children vertically */
-  cursor: default;
-  overflow: hidden; /* Hide anything that overflows the panel */
+  /* --- Explicit Styles instead of 'all: initial' --- */
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 420px !important; /* Slightly wider */
+  max-height: 550px !important; /* Slightly taller */
+  background-color: var(--remover-bg-primary) !important;
+  border-radius: var(--remover-radius) !important;
+  box-shadow: var(--remover-shadow) !important;
+  z-index: 2147483647 !important;
+  font-family: var(--remover-font-stack) !important;
+  color: var(--remover-text-primary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  cursor: default !important;
+  overflow: hidden !important;
+  line-height: 1.5 !important; /* Improved line height */
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--remover-border-color) !important; /* Subtle border */
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+#remover-panel *,
+#remover-panel *::before,
+#remover-panel *::after {
+  box-sizing: inherit !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font: inherit !important;
+  color: inherit !important;
+  background: none !important;
+  line-height: inherit !important; /* Inherit line-height */
+  text-align: left !important;
+  vertical-align: baseline !important;
+  box-shadow: none !important;
 }
 
 /* --- CÁC "TRANG" BÊN TRONG PANEL --- */
 .remover-view {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  /* (*** SCROLL FIX: Removed height: 100% ***) */
-  flex-grow: 1; /* Allow view to grow/shrink within max-height */
-  transition: transform 0.2s ease-in-out;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  flex-grow: 1 !important;
+  min-height: 0 !important;
+  transition: transform 0.2s ease-in-out !important;
+  overflow: hidden;
 }
-
 #remover-settings-view {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%; /* Settings view needs fixed height for absolute positioning */
-  transform: translateX(100%);
-  background-color: var(--remover-bg-primary);
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: translateX(100%) !important;
+  background-color: var(--remover-bg-primary) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden;
 }
-
 #remover-panel.remover-is-flipped #remover-main-view {
-  transform: translateX(-100%);
+  transform: translateX(-100%) !important;
 }
 #remover-panel.remover-is-flipped #remover-settings-view {
-  transform: translateX(0);
+  transform: translateX(0) !important;
 }
 
 /* --- HEADER --- */
 #remover-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 8px 12px 16px;
-  border-bottom: 1px solid var(--remover-border-color);
-  flex-shrink: 0; /* Header should not shrink */
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 12px 16px !important; /* Consistent padding */
+  border-bottom: 1px solid var(--remover-border-color) !important;
+  flex-shrink: 0 !important;
+  height: 32px;
 }
-
 #remover-panel-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-.remover-setting {
-  display: flex;
-  flex-direction: row;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--remover-text-primary) !important;
 }
 .remover-header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
 }
 .remover-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: none;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 18px;
-  color: var(--remover-text-secondary);
-  padding: 0;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important; /* Slightly larger touch target */
+  background: none !important;
+  border: none !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  font-size: 20px !important; /* Larger icon */
+  color: var(--remover-text-secondary) !important;
+  padding: 0 !important;
+  transition: background-color 0.15s ease !important;
 }
 .remover-icon-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--remover-bg-secondary) !important;
+}
+/* Specific color for close button */
+#remover-close-btn {
+  color: var(--remover-danger-color) !important;
+}
+#remover-close-btn:hover {
+  background-color: rgba(229, 62, 62, 0.1) !important;
+}
+
+#remover-settings-btn:hover {
+  background-color: rgba(96, 90, 90, 0.1) !important;
+}
+
+#remover-reset-btn:hover {
+  background-color: rgba(117, 159, 230, 0.1) !important;
 }
 
 /* --- KHU VỰC "TOOLS" --- */
 #remover-tools {
-  padding: 12px 16px;
-  background-color: var(--remover-bg-secondary);
-  border-bottom: 1px solid var(--remover-border-color);
-  flex-shrink: 0; /* Tools section should not shrink */
+  padding: 16px !important; /* More padding */
+  background-color: var(--remover-bg-primary) !important; /* White background */
+  border-bottom: 1px solid var(--remover-border-color) !important;
+  flex-shrink: 0 !important;
 }
-
 #remover-selector-display {
-  width: 100%;
-  box-sizing: border-box;
+  width: 100% !important;
+  box-sizing: border-box !important;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
-    monospace;
-  font-size: 12px;
-  padding: 8px;
-  border: 1px solid var(--remover-border-color);
-  border-radius: 4px;
-  background-color: var(--remover-bg-primary);
-  color: var(--remover-text-secondary);
-  margin-bottom: 10px;
-}
-.remover-key-hint {
-  font-size: 12px;
-  color: var(--remover-text-secondary);
-}
-.remover-key-hint kbd {
-  font-family: inherit;
-  font-weight: 600;
-  background-color: var(--remover-bg-primary);
-  border: 1px solid var(--remover-border-color);
-  border-radius: 4px;
-  padding: 1px 4px;
-  font-size: 11px;
+    monospace !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important; /* More horizontal padding */
+  border: 1px solid var(--remover-border-color) !important;
+  border-radius: var(--remover-radius) !important; /* Use global radius */
+  background-color: #ffffff !important; /* Ensure white */
+  color: var(--remover-text-secondary) !important;
+  height: auto !important;
+  vertical-align: baseline !important;
 }
 
 /* --- DANH SÁCH ĐÃ XÓA --- */
 #remover-list-container {
-  padding: 0 16px 8px 16px;
-  overflow-y: auto; /* Enable vertical scrollbar when needed */
-  flex-grow: 1; /* Allow this container to fill remaining space */
-  max-height: 150px; /* Ensure it has some minimum height */
+  padding: 8px 16px 16px 16px !important; /* Adjust padding */
+  overflow-y: auto !important;
+  flex-grow: 1 !important;
+  min-height: 0 !important;
 }
-
 #remover-list-container h4 {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--remover-text-secondary);
-  margin: 12px 0 4px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--remover-text-secondary) !important;
+  margin: 12px 0 8px 0 !important; /* Adjust margins */
+  padding: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important; /* Wider spacing */
 }
 #remover-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 li.remover-item-card {
-  display: flex;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--remover-border-color);
-  gap: 12px;
+  display: flex !important;
+  align-items: center !important;
+  padding: 10px 0 !important; /* More vertical padding */
+  border-bottom: 1px solid var(--remover-border-color) !important;
+  gap: 12px !important;
 }
 li.remover-item-card:last-child {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 .remover-item-icon {
-  font-size: 20px;
-  user-select: none;
-  flex-shrink: 0;
+  font-size: 20px !important;
+  user-select: none !important;
+  flex-shrink: 0 !important;
+  color: var(
+    --remover-text-secondary
+  ) !important; /* Use secondary color for icon */
 }
 .remover-item-info {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-grow: 1 !important;
+  overflow: hidden !important;
+  gap: 2px !important; /* Small gap */
 }
 .remover-item-desc {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--remover-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--remover-text-primary) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 .remover-item-selector {
-  font-size: 11px;
-  color: var(--remover-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 11px !important;
+  color: var(--remover-text-secondary) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
-    monospace;
+    monospace !important;
 }
 .remover-undo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  color: var(--remover-accent-color);
-  font-weight: bold;
-  font-size: 18px;
-  user-select: none;
-  border-radius: 50%;
-  flex-shrink: 0;
-  padding: 0;
-  background: none; /* Make it look like an icon button */
-  border: none;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 30px !important;
+  height: 30px !important; /* Slightly larger */
+  cursor: pointer !important;
+  color: var(--remover-danger-color) !important;
+  font-weight: normal !important; /* Normal weight for 'X' */
+  font-size: 20px !important;
+  user-select: none !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  transition: background-color 0.15s ease !important;
 }
 .remover-undo:hover {
-  background-color: rgba(217, 48, 37, 0.1); /* Google red hover */
+  background-color: rgba(229, 62, 62, 0.1) !important;
 }
 
 /* --- FOOTER --- */
 #remover-remember-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--remover-border-color);
-  background-color: var(--remover-bg-secondary);
-  flex-shrink: 0; /* Footer should not shrink */
+  padding: 16px !important; /* More padding */
+  border-top: 1px solid var(--remover-border-color) !important;
+  background-color: var(--remover-bg-secondary) !important;
+  flex-shrink: 0 !important;
 }
-
 #remover-remember-footer label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  font-size: 14px;
+  display: flex !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  font-size: 14px !important;
+  color: var(--remover-text-primary) !important;
 }
 #remover-remember-footer input[type="checkbox"] {
-  margin-right: 10px;
+  /* Keep specific overrides from previous fix */
+  display: inline-block !important;
+  width: 14px !important;
+  height: 14px !important; /* Slightly larger */
+  margin: 0 10px 0 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: static !important;
+  vertical-align: middle !important;
+  -webkit-appearance: checkbox !important;
+  appearance: checkbox !important;
+  font: initial !important;
+  color: initial !important;
+  background: initial !important;
+  border: initial !important;
 }
-
 #remover-author-footer {
-  padding: 12px 16px;
-  background-color: var(--remover-bg-primary);
-  font-size: 11px;
-  color: var(--remover-text-secondary);
-  text-align: center;
-  flex-shrink: 0; /* Footer should not shrink */
+  padding: 12px 16px !important;
+  background-color: var(--remover-bg-primary) !important;
+  font-size: 11px !important;
+  color: var(--remover-text-secondary) !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
 }
-
 #remover-author-footer a {
-  color: var(--remover-text-primary);
-  font-weight: 600;
-  text-decoration: none;
+  color: var(
+    --remover-accent-color
+  ) !important; /* Use accent color for links */
+  font-weight: 500 !important; /* Slightly less bold */
+  text-decoration: none !important;
+  font-size: inherit !important;
+  cursor: pointer !important;
+  transition: color 0.15s ease;
 }
 #remover-author-footer a:hover {
-  text-decoration: underline;
+  color: var(--remover-text-primary) !important;
+  text-decoration: underline !important;
 }
 .remover-divider {
-  border: none;
-  border-top: 1px solid var(--remover-border-color);
-  margin: 0 0 12px 0; /* Only bottom margin */
+  display: block !important;
+  border: none !important;
+  border-top: 1px solid var(--remover-border-color) !important;
+  margin: 0 0 12px 0 !important;
+  height: 1px !important;
+  padding: 0 !important;
+}
+
+.remover-setting {
+  display: flex;
 }
 
 /* --- TRANG CÀI ĐẶT (SETTINGS VIEW) --- */
 #remover-settings-view .remover-setting-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--remover-border-color);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
+  padding: 16px !important; /* More padding */
+  border-bottom: 1px solid var(--remover-border-color) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
 }
 #remover-settings-view .remover-setting-item:hover {
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: var(--remover-bg-secondary) !important;
 }
-
 #remover-settings-view button,
 #remover-settings-view label {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  font-size: 14px;
-  color: var(--remover-text-primary);
-  cursor: pointer;
-  margin: 0;
-  padding: 0;
-  flex-grow: 1;
+  display: block !important;
+  width: 100% !important;
+  text-align: left !important;
+  background: none !important;
+  border: none !important;
+  font-size: 14px !important;
+  color: var(--remover-text-primary) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex-grow: 1 !important;
 }
-
+/* Specific style for file input label */
+#remover-settings-view label[for="remover-import-file"]:hover {
+  color: var(--remover-accent-color) !important; /* Add hover effect */
+}
 #remover-settings-view input[type="file"] {
-  display: none;
+  display: none !important;
 }
-
 #remover-settings-view .remover-setting-version {
-  padding: 16px;
-  font-size: 12px;
-  color: var(--remover-text-secondary);
-  text-align: center;
+  padding: 16px !important;
+  font-size: 12px !important;
+  color: var(--remover-text-secondary) !important;
+  text-align: center !important;
+  margin-top: auto !important; /* Push version to bottom */
 }
