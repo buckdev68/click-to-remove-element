@@ -1,20 +1,16 @@
 /**
- * content.js (v1.5.0 - Simplified Selection, Final)
- * - Removed Q/W key functionality and Shift+Click.
- * - Selection always targets the directly hovered element.
- * - Always requires Ctrl/Cmd key for selection and removal.
- * - Fixes SecurityError in cross-origin iframes.
- * - Removes console warnings for cleaner output.
+ * CTRE 
+ * buckdev68@gmail.com
  */
 class ElementRemover {
   constructor() {
     this.isActive = false;
     this.isModKeyDown = false;
-    this.hoveredElement = null; // Element currently under the mouse (now equals selected)
-    this.currentElement = null; // Kept for consistency, will mirror hoveredElement
+    // this.hoveredElement = null; // REMOVED
+    this.currentElement = null; // Element directly under cursor when active & mod key pressed
     // this.selectionLevel = 0; // REMOVED
     this.removedSelectors = []; // Array of {selector, description}
-    this.isRemember = false; // State of the "Remember" checkbox
+    this.isRemember = false; // Internal state flag, true if rules exist for domain
     this.panel = null; // Reference to the main panel DOM element
     this.observer = null; // Reference to the MutationObserver
     this.isTopFrame = window.top === window.self; // Is this the main page or an iframe?
@@ -36,15 +32,15 @@ class ElementRemover {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleUndo = this.handleUndo.bind(this);
-    this.handleToggleRemember = this.handleToggleRemember.bind(this);
-    this.handleEyeHover = this.handleEyeHover.bind(this);
-    this.handleEyeOut = this.handleEyeOut.bind(this);
+    this.restoreAllElements = this.restoreAllElements.bind(this);
+    this.reApplyAllRules = this.reApplyAllRules.bind(this);
     this.toggleSettingsView = this.toggleSettingsView.bind(this);
     this.handleExport = this.handleExport.bind(this);
     this.handleImport = this.handleImport.bind(this);
     this.applyRulesToMutations = this.applyRulesToMutations.bind(this);
     this.handleMessage = this.handleMessage.bind(this);
-    this.updateHighlight = this.updateHighlight.bind(this); // Renamed from updateSelectionAndHighlight
+    this.updateHighlight = this.updateHighlight.bind(this);
+    this.handleResetDomain = this.handleResetDomain.bind(this);
   }
 
   /**
@@ -62,12 +58,11 @@ class ElementRemover {
       chrome.runtime.onMessage.addListener(this.handleMessage);
     }
 
-    // All frames set up the MutationObserver to catch dynamic content
-    this.setupObserver();
+    // setupObserver() will be called by loadAndApplySavedRules if rules exist
   }
 
   /**
-   * Handles messages from the background script or other frames.
+   * Handles messages from the background script.
    */
   handleMessage(request, sender, sendResponse) {
     if (request.action === "toggle") {
@@ -85,7 +80,7 @@ class ElementRemover {
    * Sets up the MutationObserver to watch for dynamically added elements.
    */
   setupObserver() {
-    // Only run if 'Remember' is active and observer doesn't exist yet
+    // Only run if 'isRemember' (rules exist) and observer isn't already running
     if (!this.isRemember || this.observer) return;
 
     this.observer = new MutationObserver(this.applyRulesToMutations);
@@ -151,8 +146,7 @@ class ElementRemover {
     // Show the panel
     this.panel.style.display = "flex";
 
-    // Update UI elements based on current state
-    this.panel.querySelector("#remover-remember").checked = this.isRemember;
+    // Update UI elements based on current state (no checkbox needed)
     this.updatePanelList(); // Refresh the list of removed items
 
     // Add event listeners for interaction (using CAPTURE phase)
@@ -183,9 +177,10 @@ class ElementRemover {
     chrome.runtime.sendMessage({ action: "stateChange", active: false });
 
     this.removeHighlight(); // Clear any active highlight and reset state
-    // Hide the panel
+
+    // Hide the panel forcefully using setProperty
     if (this.panel) {
-      this.panel.style.display = "none";
+      this.panel.style.setProperty("display", "none", "important");
       // Ensure settings view is closed
       this.panel.classList.remove("remover-is-flipped");
     }
@@ -213,22 +208,19 @@ class ElementRemover {
 
   /**
    * Creates the main panel and settings panel HTML and appends them to the body.
-   * Only called by the top-level frame.
+   * Only called by the top-level frame. (Removed Q/W hint, removed Remember footer)
    */
   createPanel() {
     this.panel = document.createElement("div");
     this.panel.id = "remover-panel";
     this.panel.style.display = "none"; // Initially hidden
-
-    // --- Main View HTML ---
     const mainView = document.createElement("div");
     mainView.id = "remover-main-view";
     mainView.className = "remover-view";
-    // Removed the .remover-key-hint div
     mainView.innerHTML = `
       <div id="remover-panel-header">
-        <h3 class="remover-header-title">Remove Element</h3>
-        <div class="remover-setting">
+        <h3 class="remover-header-title"> Click to Remove Element v1.0.0</h3>
+        <div class="remover-setting"> <button id="remover-reset-btn" class="remover-icon-btn" title="Reset rules for this domain">🔄</button>
           <button id="remover-settings-btn" class="remover-icon-btn" title="Settings">⚙️</button>
           <button id="remover-close-btn" class="remover-icon-btn" title="Close (Esc)">❌</button>
         </div>
@@ -240,20 +232,11 @@ class ElementRemover {
         <h4>Removed on this domain</h4>
         <ul id="remover-list"></ul>
       </div>
-      <div id="remover-remember-footer">
-        <label>
-          <input type="checkbox" id="remover-remember"> Remember for this domain
-        </label>
-      </div>
       <div id="remover-author-footer">
         <hr class="remover-divider">
-        Made by <a href="https://github.com/buckdev68" target="_blank" rel="noopener noreferrer">buckdev68</a>.
-        Love <a href="[YOUR-CHROME-STORE-LINK]" target="_blank" rel="noopener noreferrer">CRE</a>?
-        Consider <a href="https://www.buymeacoffee.com/[YOUR-BMA-USERNAME]" target="_blank" rel="noopener noreferrer">donating</a>.
+        Made by <a href="https://github.com/buckdev68/click-to-remove-element" target="_blank" rel="noopener noreferrer">buckdev68</a>.
       </div>
     `;
-
-    // --- Settings View HTML ---
     const settingsView = document.createElement("div");
     settingsView.id = "remover-settings-view";
     settingsView.className = "remover-view";
@@ -271,40 +254,40 @@ class ElementRemover {
         <label for="remover-import-file">Import Rules</label>
         <input type="file" id="remover-import-file" accept=".json">
       </div>
-      <div style="flex-grow: 1;"></div> <div class="remover-setting-version">
-        Click to Remove Element v1.5.0 </div>
+      <div style="flex-grow: 1;"></div>
+      <div class="remover-setting-version">
+        Click to Remove Element v1.0.0 </div>
     `;
-
-    // Append views to the main panel
     this.panel.appendChild(mainView);
     this.panel.appendChild(settingsView);
-    // Append panel to the body
     document.body.appendChild(this.panel);
 
-    // Add Event Listeners for panel controls
+    // Add Event Listeners
     this.panel
       .querySelector("#remover-close-btn")
-      .addEventListener("click", () => this.deactivate());
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.deactivate();
+      });
+    this.panel
+      .querySelector("#remover-reset-btn")
+      .addEventListener("click", this.handleResetDomain);
     this.panel
       .querySelector("#remover-settings-btn")
       .addEventListener("click", this.toggleSettingsView);
     this.panel
       .querySelector("#remover-back-btn")
       .addEventListener("click", this.toggleSettingsView);
-    this.panel
-      .querySelector("#remover-remember")
-      .addEventListener("change", this.handleToggleRemember);
+    // Remember checkbox listener removed
     this.panel
       .querySelector("#remover-list")
       .addEventListener("click", this.handleUndo);
-    // Use list-container for hover effects to cover empty area too
     this.panel
       .querySelector("#remover-list-container")
-      .addEventListener("mouseover", this.handleEyeHover);
+      .addEventListener("mouseover", this.restoreAllElements);
     this.panel
       .querySelector("#remover-list-container")
-      .addEventListener("mouseout", this.handleEyeOut);
-    // Settings controls
+      .addEventListener("mouseout", this.reApplyAllRules);
     this.panel
       .querySelector("#remover-export")
       .addEventListener("click", this.handleExport);
@@ -319,7 +302,7 @@ class ElementRemover {
   }
 
   /**
-   * Handles mouse movement to update the hovered element and highlight.
+   * Handles mouse movement to update the highlighted element (directly under cursor).
    */
   handleMouseMove(e) {
     // Only proceed if active and modifier key is held
@@ -334,44 +317,42 @@ class ElementRemover {
       return;
     }
 
-    // If the element under the mouse changed
-    if (this.hoveredElement !== e.target) {
-      this.hoveredElement = e.target; // Update hovered
-      // this.selectionLevel = 0; // REMOVED
-      this.updateHighlight(); // Update highlight & UI
+    // If the element under the mouse is different, update highlight
+    // No need to track hoveredElement separately anymore
+    if (this.currentElement !== e.target) {
+      this.updateHighlight(e.target); // Pass the new target directly
     }
   }
 
   /**
    * Updates the highlight/UI based on the directly hovered element.
-   * Renamed from updateSelectionAndHighlight.
    */
-  updateHighlight() {
+  updateHighlight(newTarget) {
     // Remove previous highlight
     if (this.currentElement) {
       this.currentElement.classList.remove("remover-highlight");
     }
 
-    // Set current element to the hovered one
-    this.currentElement = this.hoveredElement;
+    // Set new current element
+    this.currentElement = newTarget;
 
     // Add new highlight
     if (this.currentElement) {
       this.currentElement.classList.add("remover-highlight");
 
-      // Update selector display (only in top frame with panel)
+      // Update selector display (only in top frame)
       if (this.isTopFrame && this.panel) {
         const selector = this.getUniqueSelector(this.currentElement);
         this.panel.querySelector("#remover-selector-display").value = selector;
       }
     } else {
-      // Fallback: If no element selected, reset display
+      // Fallback: If no target, reset display
       this.removeHighlight();
     }
   }
 
   /**
-   * Removes the highlight and resets hover state.
+   * Removes the highlight and resets selection state.
    */
   removeHighlight() {
     // Remove class from the currently highlighted element
@@ -379,8 +360,8 @@ class ElementRemover {
       this.currentElement.classList.remove("remover-highlight");
     }
     // Reset state variables
-    this.currentElement = null; // Clear selected
-    this.hoveredElement = null; // Clear hovered
+    this.currentElement = null; // Clear selected/hovered
+    // this.hoveredElement = null; // REMOVED
     // this.selectionLevel = 0; // REMOVED
 
     // Reset UI display (only in top frame if panel exists and is active)
@@ -426,11 +407,9 @@ class ElementRemover {
     // Detect modifier key press
     if (e.key === "Control" || e.key === "Meta") {
       this.isModKeyDown = true;
-      // Update placeholder text
-      if (this.panel) {
+      if (this.panel)
         this.panel.querySelector("#remover-selector-display").value =
           "Hover an element...";
-      }
       return; // Modifier key press itself doesn't do anything else
     }
 
@@ -458,24 +437,19 @@ class ElementRemover {
    */
   handleKeyUp(e) {
     if (!this.isActive || !this.isTopFrame) return;
-
     // Stop propagation for modifier keys on keyup as well
     if (["Control", "Meta"].includes(e.key)) {
       e.preventDefault();
       e.stopPropagation();
     }
-
     // Detect modifier key release
     if (e.key === "Control" || e.key === "Meta") {
       this.isModKeyDown = false;
-      // Clear highlight when modifier is released
-      this.removeHighlight();
+      this.removeHighlight(); // Clear highlight when modifier is released
     }
   }
 
-  /**
-   * Generates a user-friendly description (text & icon) for an element.
-   */
+  /** Generates a user-friendly description (text & icon) for an element. */
   generateElementDescription(el) {
     let desc = "";
     let icon = "📄"; // Default: document icon
@@ -510,9 +484,7 @@ class ElementRemover {
     return { text: desc || "Unnamed element", icon: icon };
   }
 
-  /**
-   * Removes the element, adds its selector to the list, and updates state.
-   */
+  /** Removes element, updates list, saves rule, starts observer. */
   removeElement(element) {
     if (!element) return;
     const selector = this.getUniqueSelector(element);
@@ -524,18 +496,16 @@ class ElementRemover {
       selector: selector,
       description: description,
     });
+    this.isRemember = true; // Mark as having rules
     if (this.isActive && this.isTopFrame) {
       this.updatePanelList();
     }
     this.removeHighlight(); // Clear highlight AFTER removing
-    if (this.isRemember) {
-      this.saveRules();
-    }
+    this.saveRules(); // Auto-save
+    this.setupObserver(); // Ensure observer is running or starts
   }
 
-  /**
-   * Handles clicking the 'Undo' button in the removed list.
-   */
+  /** Handles clicking the 'Undo' button. */
   handleUndo(e) {
     let target = e.target;
     while (
@@ -552,15 +522,19 @@ class ElementRemover {
         (item) => item.selector !== selector
       );
       this.updatePanelList();
-      if (this.isRemember) {
-        this.saveRules();
+      this.saveRules(); // Auto-save
+      if (this.removedSelectors.length === 0) {
+        // Check if list is empty now
+        this.isRemember = false;
+        if (this.observer) {
+          this.observer.disconnect();
+          this.observer = null;
+        }
       }
     }
   }
 
-  /**
-   * Restores elements matching a selector by removing the 'display: none'.
-   */
+  /** Restores elements matching a selector. */
   restoreElement(selector) {
     try {
       const elements = document.querySelectorAll(selector);
@@ -575,9 +549,7 @@ class ElementRemover {
     }
   }
 
-  /**
-   * Updates the list of removed elements displayed in the panel.
-   */
+  /** Updates the list of removed elements in the panel. */
   updatePanelList() {
     if (!this.panel || !this.isActive || !this.isTopFrame) return;
     const list = this.panel.querySelector("#remover-list");
@@ -624,21 +596,7 @@ class ElementRemover {
     return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  /** Handles changes to the "Remember" checkbox. */
-  handleToggleRemember(e) {
-    if (!this.isTopFrame) return;
-    this.isRemember = e.target.checked;
-    if (this.isRemember) {
-      this.saveRules();
-      this.setupObserver();
-    } else {
-      chrome.storage.local.remove(this.urlKey);
-      if (this.observer) {
-        this.observer.disconnect();
-        this.observer = null;
-      }
-    }
-  }
+  // handleToggleRemember REMOVED
 
   /** Saves the current list of removed selectors to chrome.storage. */
   saveRules() {
@@ -648,7 +606,7 @@ class ElementRemover {
     chrome.storage.local.set(data);
   }
 
-  /** Loads rules from chrome.storage and applies them. Handles old data format. */
+  /** Loads rules from chrome.storage and applies them. Sets internal isRemember flag. */
   loadAndApplySavedRules() {
     if (!this.urlKey) return;
     chrome.storage.local.get(this.urlKey, (result) => {
@@ -665,17 +623,14 @@ class ElementRemover {
         } else {
           this.removedSelectors = rules;
         }
-        this.isRemember = true;
+        this.isRemember = true; // Set internal flag
         this.applyRules();
         setTimeout(() => this.setupObserver(), 500); // Start observer if rules loaded
       } else {
         this.removedSelectors = [];
-        this.isRemember = false;
+        this.isRemember = false; // Set internal flag
       }
-      // Update checkbox in panel if panel exists (only top frame)
-      if (this.isTopFrame && this.panel) {
-        this.panel.querySelector("#remover-remember").checked = this.isRemember;
-      }
+      // No checkbox update needed
     });
   }
 
@@ -694,8 +649,8 @@ class ElementRemover {
     });
   }
 
-  /** Temporarily restores removed elements on hover (Eye icon simulation). */
-  handleEyeHover(e) {
+  /** Temporarily restores removed elements on hover. */
+  restoreAllElements(e) {
     if (this.isTopFrame && e.target.closest("#remover-list-container")) {
       this.removedSelectors.forEach((item) =>
         this.restoreElement(item.selector)
@@ -703,10 +658,38 @@ class ElementRemover {
     }
   }
 
-  /** Re-applies rules when hover ends (Eye icon simulation). */
-  handleEyeOut() {
+  /** Re-applies rules when hover ends. */
+  reApplyAllRules() {
     if (this.isTopFrame) {
       this.applyRules();
+    }
+  }
+
+  /** Handles clicking the 'Reset' button. */
+  handleResetDomain(e) {
+    e.stopPropagation(); // Stop click from propagating
+    if (!this.isTopFrame) return;
+    if (
+      confirm(
+        "Are you sure you want to restore all hidden elements for this domain? This action cannot be undone."
+      )
+    ) {
+      // Restore elements visually
+      this.removedSelectors.forEach((item) =>
+        this.restoreElement(item.selector)
+      );
+      // Clear internal state
+      this.removedSelectors = [];
+      this.isRemember = false;
+      // Stop the observer
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
+      }
+      // Update the panel UI
+      this.updatePanelList();
+      // Save the empty list to storage
+      this.saveRules();
     }
   }
 
