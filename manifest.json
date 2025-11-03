@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Click to Remove Element",
-  "version": "1.3.2",
+  "version": "1.0.1",
   "description": "Permanently remove ads, popups, and any annoying element. Just point, click, and it's gone forever from that domain.",
   "permissions": ["storage", "activeTab", "tabs", "scripting"],
   "background": {
