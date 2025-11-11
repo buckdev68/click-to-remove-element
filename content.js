@@ -1,32 +1,25 @@
 /**
- * CTRE 
+ * CTRE
  * buckdev68@gmail.com
  */
 class ElementRemover {
   constructor() {
     this.isActive = false;
     this.isModKeyDown = false;
-    // this.hoveredElement = null; // REMOVED
-    this.currentElement = null; // Element directly under cursor when active & mod key pressed
-    // this.selectionLevel = 0; // REMOVED
-    this.removedSelectors = []; // Array of {selector, description}
-    this.isRemember = false; // Internal state flag, true if rules exist for domain
-    this.panel = null; // Reference to the main panel DOM element
-    this.observer = null; // Reference to the MutationObserver
-    this.isTopFrame = window.top === window.self; // Is this the main page or an iframe?
+    this.currentElement = null;
+    this.removedSelectors = [];
+    this.isRemember = false;
+    this.panel = null;
+    this.observer = null;
+    this.isTopFrame = window.top === window.self;
 
-    // Storage key (domain name)
     this.urlKey = null;
     try {
-      // Use the top-level domain as the key
       this.urlKey = window.top.location.hostname;
     } catch (e) {
-      // Fallback for cross-origin iframes: use the iframe's own domain
       this.urlKey = window.location.hostname;
-      // console.warn removed for cleaner console
     }
 
-    // Bind 'this' for event handlers
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleClick = this.handleClick.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -43,82 +36,50 @@ class ElementRemover {
     this.handleResetDomain = this.handleResetDomain.bind(this);
   }
 
-  /**
-   * Initialize the script: Load rules, set up listeners.
-   */
   initialize() {
-    if (!this.urlKey) return; // Stop if we couldn't determine a domain
-
-    // Load saved rules for this domain and apply them immediately
+    if (!this.urlKey) return;
     this.loadAndApplySavedRules();
-
-    // Only the top-level frame listens for the 'toggle' message from background
     if (this.isTopFrame) {
-      console.log("Element Remover Loaded on page."); // Log for debugging
+      console.log("Element Remover Loaded on page.");
       chrome.runtime.onMessage.addListener(this.handleMessage);
     }
-
-    // setupObserver() will be called by loadAndApplySavedRules if rules exist
+    this.setupObserver();
   }
 
-  /**
-   * Handles messages from the background script.
-   */
   handleMessage(request, sender, sendResponse) {
     if (request.action === "toggle") {
       this.toggle();
-      sendResponse({ success: true }); // Acknowledge
+      sendResponse({ success: true });
     } else if (request.action === "queryState") {
-      // Background script asks for the current state (only top frame matters)
       sendResponse({ isActive: this.isActive });
     }
-    // Indicate potential async response
     return true;
   }
 
-  /**
-   * Sets up the MutationObserver to watch for dynamically added elements.
-   */
   setupObserver() {
-    // Only run if 'isRemember' (rules exist) and observer isn't already running
     if (!this.isRemember || this.observer) return;
-
     this.observer = new MutationObserver(this.applyRulesToMutations);
-    // Observe the entire body for added child nodes in the whole subtree
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    this.observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  /**
-   * Callback for the MutationObserver. Applies saved rules to newly added nodes.
-   */
   applyRulesToMutations(mutations) {
     if (this.removedSelectors.length === 0) return;
-
     for (const mutation of mutations) {
-      // Check if nodes were added
       if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
         for (const node of mutation.addedNodes) {
-          // Process only element nodes
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check each saved rule against the new node and its children
             this.removedSelectors.forEach((item) => {
               const selector = item.selector;
               try {
-                // Check if the node itself matches
+                if (selector === "body" || selector === "html") return;
                 if (node.matches && node.matches(selector)) {
                   node.style.setProperty("display", "none", "important");
                 }
-                // Check if any children within the new node match
                 const children = node.querySelectorAll(selector);
                 children.forEach((child) => {
                   child.style.setProperty("display", "none", "important");
                 });
-              } catch (e) {
-                // Ignore errors from potentially invalid selectors
-              }
+              } catch (e) {}
             });
           }
         }
@@ -126,65 +87,37 @@ class ElementRemover {
     }
   }
 
-  /**
-   * Activates the element remover mode (shows panel, adds listeners).
-   * Only runs in the top-level frame.
-   */
   activate() {
-    // Only run if not already active and is the top frame
     if (this.isActive || !this.isTopFrame) return;
-
     this.isActive = true;
     console.log("Element Remover Activated.");
-    // Notify background script to change the icon to 'active'
     chrome.runtime.sendMessage({ action: "stateChange", active: true });
-
-    // Create the panel if it doesn't exist
     if (!this.panel) {
       this.createPanel();
     }
-    // Show the panel
     this.panel.style.display = "flex";
-
-    // Update UI elements based on current state (no checkbox needed)
-    this.updatePanelList(); // Refresh the list of removed items
-
-    // Add event listeners for interaction (using CAPTURE phase)
+    this.updatePanelList();
     document.addEventListener("mousemove", this.handleMouseMove, {
       capture: true,
     });
     document.addEventListener("click", this.handleClick, { capture: true });
     document.addEventListener("keydown", this.handleKeyDown, { capture: true });
     document.addEventListener("keyup", this.handleKeyUp, { capture: true });
-
-    // Set initial placeholder text
     this.panel.querySelector("#remover-selector-display").value =
       "Hold [Ctrl]/[Cmd] to select";
   }
 
-  /**
-   * Deactivates the element remover mode (hides panel, removes listeners).
-   * Only runs in the top-level frame.
-   */
   deactivate() {
-    // Only run if active and is the top frame
     if (!this.isActive || !this.isTopFrame) return;
-
     this.isActive = false;
-    this.isModKeyDown = false; // Reset modifier key state
+    this.isModKeyDown = false;
     console.log("Element Remover Deactivated");
-    // Notify background script to change the icon to 'inactive'
     chrome.runtime.sendMessage({ action: "stateChange", active: false });
-
-    this.removeHighlight(); // Clear any active highlight and reset state
-
-    // Hide the panel forcefully using setProperty
+    this.removeHighlight();
     if (this.panel) {
       this.panel.style.setProperty("display", "none", "important");
-      // Ensure settings view is closed
       this.panel.classList.remove("remover-is-flipped");
     }
-    // Remove event listeners (using CAPTURE phase)
     document.removeEventListener("mousemove", this.handleMouseMove, {
       capture: true,
     });
@@ -195,9 +128,6 @@ class ElementRemover {
     document.removeEventListener("keyup", this.handleKeyUp, { capture: true });
   }
 
-  /**
-   * Toggles the activation state.
-   */
   toggle() {
     if (this.isActive) {
       this.deactivate();
@@ -206,14 +136,10 @@ class ElementRemover {
     }
   }
 
-  /**
-   * Creates the main panel and settings panel HTML and appends them to the body.
-   * Only called by the top-level frame. (Removed Q/W hint, removed Remember footer)
-   */
   createPanel() {
     this.panel = document.createElement("div");
     this.panel.id = "remover-panel";
-    this.panel.style.display = "none"; // Initially hidden
+    this.panel.style.display = "none";
     const mainView = document.createElement("div");
     mainView.id = "remover-main-view";
     mainView.className = "remover-view";
@@ -256,13 +182,14 @@ class ElementRemover {
       </div>
       <div style="flex-grow: 1;"></div>
       <div class="remover-setting-version">
-        Click to Remove Element v1.0.1 </div>
+        Click to Remove Element</div>
     `;
     this.panel.appendChild(mainView);
     this.panel.appendChild(settingsView);
     document.body.appendChild(this.panel);
 
     // Add Event Listeners
+    // Các listener này (Close, Reset, v.v.) sẽ chạy ở giai đoạn "bubble", SAU khi hàm handleClick (capture) chạy
     this.panel
       .querySelector("#remover-close-btn")
       .addEventListener("click", (e) => {
@@ -271,17 +198,25 @@ class ElementRemover {
       });
     this.panel
       .querySelector("#remover-reset-btn")
-      .addEventListener("click", this.handleResetDomain);
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.handleResetDomain();
+      });
     this.panel
       .querySelector("#remover-settings-btn")
-      .addEventListener("click", this.toggleSettingsView);
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.toggleSettingsView();
+      });
     this.panel
       .querySelector("#remover-back-btn")
-      .addEventListener("click", this.toggleSettingsView);
-    // Remember checkbox listener removed
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.toggleSettingsView();
+      });
     this.panel
       .querySelector("#remover-list")
-      .addEventListener("click", this.handleUndo);
+      .addEventListener("click", this.handleUndo); // handleUndo đã có stopPropagation
     this.panel
       .querySelector("#remover-list-container")
       .addEventListener("mouseover", this.restoreAllElements);
@@ -290,81 +225,59 @@ class ElementRemover {
       .addEventListener("mouseout", this.reApplyAllRules);
     this.panel
       .querySelector("#remover-export")
-      .addEventListener("click", this.handleExport);
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.handleExport();
+      });
     this.panel
       .querySelector("#remover-import-file")
       .addEventListener("change", this.handleImport);
   }
 
-  /** Flips between the main view and the settings view. */
   toggleSettingsView() {
     this.panel.classList.toggle("remover-is-flipped");
   }
 
-  /**
-   * Handles mouse movement to update the highlighted element (directly under cursor).
-   */
   handleMouseMove(e) {
-    // Only proceed if active and modifier key is held
     if (!this.isActive || !this.isModKeyDown) {
-      this.removeHighlight(); // Ensure highlight is off
-      return;
-    }
-
-    // Ignore moves over the panel itself (only relevant in top frame)
-    if (this.isTopFrame && this.panel && this.panel.contains(e.target)) {
       this.removeHighlight();
       return;
     }
-
-    // If the element under the mouse is different, update highlight
-    // No need to track hoveredElement separately anymore
     if (this.currentElement !== e.target) {
-      this.updateHighlight(e.target); // Pass the new target directly
+      this.updateHighlight(e.target);
     }
   }
 
-  /**
-   * Updates the highlight/UI based on the directly hovered element.
-   */
   updateHighlight(newTarget) {
-    // Remove previous highlight
+    if (
+      !newTarget ||
+      newTarget === document.body ||
+      newTarget === document.documentElement ||
+      (this.isTopFrame && this.panel && this.panel.contains(newTarget))
+    ) {
+      this.removeHighlight();
+      return;
+    }
     if (this.currentElement) {
       this.currentElement.classList.remove("remover-highlight");
     }
-
-    // Set new current element
     this.currentElement = newTarget;
-
-    // Add new highlight
     if (this.currentElement) {
       this.currentElement.classList.add("remover-highlight");
-
-      // Update selector display (only in top frame)
       if (this.isTopFrame && this.panel) {
         const selector = this.getUniqueSelector(this.currentElement);
         this.panel.querySelector("#remover-selector-display").value = selector;
       }
     } else {
-      // Fallback: If no target, reset display
       this.removeHighlight();
     }
   }
 
-  /**
-   * Removes the highlight and resets selection state.
-   */
   removeHighlight() {
-    // Remove class from the currently highlighted element
     if (this.currentElement) {
       this.currentElement.classList.remove("remover-highlight");
     }
-    // Reset state variables
-    this.currentElement = null; // Clear selected/hovered
-    // this.hoveredElement = null; // REMOVED
-    // this.selectionLevel = 0; // REMOVED
-
-    // Reset UI display (only in top frame if panel exists and is active)
+    this.currentElement = null;
     if (this.isTopFrame && this.panel && this.isActive) {
       this.panel.querySelector("#remover-selector-display").value =
         "Hold [Ctrl]/[Cmd] to select";
@@ -372,90 +285,83 @@ class ElementRemover {
   }
 
   /**
-   * Handles clicks to remove the currently selected element.
-   * Removed Shift+Click logic.
+   * Logic handleClick
    */
   handleClick(e) {
-    // Only act if active, modifier key is held, and an element is selected
+    // Nếu click bắt nguồn TỪ BÊN TRONG panel,
+    if (this.isTopFrame && this.panel && this.panel.contains(e.target)) {
+      return;
+    }
+
+    // Kiểm tra các điều kiện để XÓA.
+    // Nếu không active, hoặc không nhấn mod key, hoặc không có mục tiêu
     if (!this.isActive || !this.isModKeyDown || !this.currentElement) {
       return;
     }
 
-    // Prevent default click actions AND stop event propagation
+    // Không cho phép xóa các phần tử quan trọng (body/html).
+    if (
+      this.currentElement === document.body ||
+      this.currentElement === document.documentElement
+    ) {
+      console.warn("Element Remover: Blocked attempt to remove body/html.");
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // Đây là một click XÓA hợp lệ.
     e.preventDefault();
     e.stopPropagation();
-
-    // Always remove the currently highlighted element
     this.removeElement(this.currentElement);
   }
 
-  /**
-   * Handles keydown events (Modifier keys, Space, Esc).
-   * Removed Q/W key handling.
-   */
   handleKeyDown(e) {
-    // Key handling only happens in the top frame where the panel is
     if (!this.isActive || !this.isTopFrame) return;
-
-    // Prevent default browser actions and stop propagation for our control keys
-    const isControlKey = ["Control", "Meta", "Escape", " "].includes(e.key); // Removed Q, W
+    const isControlKey = ["Control", "Meta", "Escape", " "].includes(e.key);
     if (isControlKey) {
       e.preventDefault();
       e.stopPropagation();
     }
-
-    // Detect modifier key press
     if (e.key === "Control" || e.key === "Meta") {
       this.isModKeyDown = true;
       if (this.panel)
         this.panel.querySelector("#remover-selector-display").value =
           "Hover an element...";
-      return; // Modifier key press itself doesn't do anything else
+      return;
     }
-
-    // Escape always deactivates
     if (e.key === "Escape") {
       this.deactivate();
       return;
     }
-
-    // Actions below require the modifier key to be held
     if (!this.isModKeyDown) return;
-
     switch (e.key) {
-      case " ": // Space to remove
+      case " ":
         if (this.currentElement) {
           this.removeElement(this.currentElement);
         }
         break;
-      // Q & W cases removed
     }
   }
 
-  /**
-   * Handles keyup events (Modifier keys).
-   */
   handleKeyUp(e) {
     if (!this.isActive || !this.isTopFrame) return;
-    // Stop propagation for modifier keys on keyup as well
     if (["Control", "Meta"].includes(e.key)) {
       e.preventDefault();
       e.stopPropagation();
     }
-    // Detect modifier key release
     if (e.key === "Control" || e.key === "Meta") {
       this.isModKeyDown = false;
-      this.removeHighlight(); // Clear highlight when modifier is released
+      this.removeHighlight();
     }
   }
 
-  /** Generates a user-friendly description (text & icon) for an element. */
   generateElementDescription(el) {
     let desc = "";
-    let icon = "📄"; // Default: document icon
+    let icon = "📄";
     try {
       if (el.tagName === "IMG") {
-        icon = "🖼️"; // Image icon
+        icon = "🖼️";
         desc = el.alt
           ? el.alt.trim()
           : el.src
@@ -465,13 +371,12 @@ class ElementRemover {
         desc = el.innerText.trim().replace(/\s+/g, " ").substring(0, 50);
         if (desc.length === 50) desc += "...";
       } else {
-        // Fallback
-        icon = "📦"; // Box icon
+        icon = "📦";
         if (el.tagName === "A") {
-          icon = "🔗"; // Link icon
+          icon = "🔗";
           desc = el.href ? `Link: ${el.href.substring(0, 40)}...` : "A link";
         } else if (el.tagName === "VIDEO" || el.tagName === "IFRAME") {
-          icon = "📹"; // Video/Iframe icon
+          icon = "📹";
           desc = `A <${el.tagName.toLowerCase()}> element`;
         } else {
           desc = `An empty <${el.tagName.toLowerCase()}> element`;
@@ -479,15 +384,30 @@ class ElementRemover {
       }
     } catch (e) {
       desc = "A complex element";
-      icon = "🔧"; // Wrench icon
+      icon = "🔧";
     }
     return { text: desc || "Unnamed element", icon: icon };
   }
 
-  /** Removes element, updates list, saves rule, starts observer. */
   removeElement(element) {
     if (!element) return;
+    if (
+      element === document.body ||
+      element === document.documentElement ||
+      (this.isTopFrame && this.panel && this.panel.contains(element))
+    ) {
+      console.warn(
+        "Element Remover: Blocked attempt to remove critical element."
+      );
+      return;
+    }
     const selector = this.getUniqueSelector(element);
+    if (selector === "body" || selector === "html") {
+      console.warn(
+        `Element Remover: Blocked attempt to save selector: ${selector}`
+      );
+      return;
+    }
     if (this.removedSelectors.some((item) => item.selector === selector))
       return;
     const description = this.generateElementDescription(element);
@@ -496,16 +416,15 @@ class ElementRemover {
       selector: selector,
       description: description,
     });
-    this.isRemember = true; // Mark as having rules
+    this.isRemember = true;
     if (this.isActive && this.isTopFrame) {
       this.updatePanelList();
     }
-    this.removeHighlight(); // Clear highlight AFTER removing
-    this.saveRules(); // Auto-save
-    this.setupObserver(); // Ensure observer is running or starts
+    this.removeHighlight();
+    this.saveRules();
+    this.setupObserver();
   }
 
-  /** Handles clicking the 'Undo' button. */
   handleUndo(e) {
     let target = e.target;
     while (
@@ -516,15 +435,15 @@ class ElementRemover {
       target = target.parentElement;
     }
     if (target && target.classList.contains("remover-undo")) {
+      e.stopPropagation(); // Thêm stopPropagation ở đây
       const selector = target.dataset.selector;
       this.restoreElement(selector);
       this.removedSelectors = this.removedSelectors.filter(
         (item) => item.selector !== selector
       );
       this.updatePanelList();
-      this.saveRules(); // Auto-save
+      this.saveRules();
       if (this.removedSelectors.length === 0) {
-        // Check if list is empty now
         this.isRemember = false;
         if (this.observer) {
           this.observer.disconnect();
@@ -534,7 +453,6 @@ class ElementRemover {
     }
   }
 
-  /** Restores elements matching a selector. */
   restoreElement(selector) {
     try {
       const elements = document.querySelectorAll(selector);
@@ -549,7 +467,6 @@ class ElementRemover {
     }
   }
 
-  /** Updates the list of removed elements in the panel. */
   updatePanelList() {
     if (!this.panel || !this.isActive || !this.isTopFrame) return;
     const list = this.panel.querySelector("#remover-list");
@@ -591,14 +508,10 @@ class ElementRemover {
     });
   }
 
-  /** Basic HTML escaping */
   escapeHTML(str) {
     return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  // handleToggleRemember REMOVED
-
-  /** Saves the current list of removed selectors to chrome.storage. */
   saveRules() {
     if (!this.urlKey) return;
     const data = {};
@@ -606,50 +519,69 @@ class ElementRemover {
     chrome.storage.local.set(data);
   }
 
-  /** Loads rules from chrome.storage and applies them. Sets internal isRemember flag. */
   loadAndApplySavedRules() {
     if (!this.urlKey) return;
     chrome.storage.local.get(this.urlKey, (result) => {
       const rules = result[this.urlKey];
       if (rules && rules.length > 0) {
-        if (typeof rules[0] === "string") {
-          // Upgrade check
+        const safeRules = rules.filter(
+          (item) =>
+            item &&
+            item.selector &&
+            item.selector !== "body" &&
+            item.selector !== "html"
+        );
+        if (safeRules.length !== rules.length && this.isTopFrame) {
+          console.warn(
+            "Element Remover: Filtered dangerous 'body' or 'html' rules from storage."
+          );
+          this.removedSelectors = safeRules;
+          this.saveRules();
+        }
+        if (typeof safeRules[0] === "string") {
           console.log("Element Remover: Upgrading old data format...");
-          this.removedSelectors = rules.map((selector) => ({
+          this.removedSelectors = safeRules.map((selector) => ({
             selector: selector,
             description: { text: selector, icon: "🔧" },
           }));
-          if (this.isTopFrame) this.saveRules(); // Save upgraded format
+          if (this.isTopFrame) this.saveRules();
         } else {
-          this.removedSelectors = rules;
+          this.removedSelectors = safeRules;
         }
-        this.isRemember = true; // Set internal flag
-        this.applyRules();
-        setTimeout(() => this.setupObserver(), 500); // Start observer if rules loaded
+        if (this.removedSelectors.length > 0) {
+          this.isRemember = true;
+          this.applyRules();
+          setTimeout(() => this.setupObserver(), 500);
+        } else {
+          this.isRemember = false;
+        }
       } else {
         this.removedSelectors = [];
-        this.isRemember = false; // Set internal flag
+        this.isRemember = false;
       }
-      // No checkbox update needed
     });
   }
 
-  /** Applies all currently stored rules to hide elements. */
   applyRules() {
     if (this.removedSelectors.length === 0) return;
     this.removedSelectors.forEach((item) => {
       try {
+        if (item.selector === "body" || item.selector === "html") {
+          console.warn(
+            `Element Remover: Skipped applying dangerous rule: ${item.selector}`
+          );
+          return;
+        }
         const elements = document.querySelectorAll(item.selector);
         elements.forEach((el) => {
           el.style.setProperty("display", "none", "important");
         });
       } catch (e) {
-        // console.warn removed
+        /* console.warn removed */
       }
     });
   }
 
-  /** Temporarily restores removed elements on hover. */
   restoreAllElements(e) {
     if (this.isTopFrame && e.target.closest("#remover-list-container")) {
       this.removedSelectors.forEach((item) =>
@@ -658,42 +590,33 @@ class ElementRemover {
     }
   }
 
-  /** Re-applies rules when hover ends. */
   reApplyAllRules() {
     if (this.isTopFrame) {
       this.applyRules();
     }
   }
 
-  /** Handles clicking the 'Reset' button. */
   handleResetDomain(e) {
-    e.stopPropagation(); // Stop click from propagating
     if (!this.isTopFrame) return;
     if (
       confirm(
         "Are you sure you want to restore all hidden elements for this domain? This action cannot be undone."
       )
     ) {
-      // Restore elements visually
       this.removedSelectors.forEach((item) =>
         this.restoreElement(item.selector)
       );
-      // Clear internal state
       this.removedSelectors = [];
       this.isRemember = false;
-      // Stop the observer
       if (this.observer) {
         this.observer.disconnect();
         this.observer = null;
       }
-      // Update the panel UI
       this.updatePanelList();
-      // Save the empty list to storage
       this.saveRules();
     }
   }
 
-  /** Exports all saved rules to a JSON file. */
   handleExport() {
     chrome.storage.local.get(null, (allRules) => {
       const dataStr = JSON.stringify(allRules, null, 2);
@@ -709,7 +632,6 @@ class ElementRemover {
     });
   }
 
-  /** Imports rules from a JSON file. */
   handleImport(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -724,7 +646,7 @@ class ElementRemover {
             );
             this.toggleSettingsView();
             this.deactivate();
-            this.loadAndApplySavedRules(); // Reload rules internally
+            this.loadAndApplySavedRules();
           });
         });
       } catch (err) {
@@ -732,16 +654,13 @@ class ElementRemover {
       }
     };
     reader.readAsText(file);
-    e.target.value = null; // Reset input
+    e.target.value = null;
   }
 
-  /**
-   * Generates a unique CSS selector for a given element.
-   * Prefers ID, falls back to tag name + :nth-of-type path.
-   */
   getUniqueSelector(el) {
     if (!el || !el.tagName) return "";
-    // Prefer ID if unique and valid
+    if (el === document.body) return "body";
+    if (el === document.documentElement) return "html";
     if (el.id) {
       const idSelector = `#${CSS.escape(el.id)}`;
       try {
@@ -749,7 +668,6 @@ class ElementRemover {
           return idSelector;
       } catch (e) {}
     }
-    // Fallback to path
     let path = [];
     while (el && el.nodeType === Node.ELEMENT_NODE) {
       let selector = el.nodeName.toLowerCase();
@@ -783,7 +701,6 @@ class ElementRemover {
 } // End of ElementRemover class
 
 // --- Script entry point ---
-// Create and initialize the remover instance if it doesn't exist
 if (!window.elementRemoverInstance) {
   window.elementRemoverInstance = new ElementRemover();
   window.elementRemoverInstance.initialize();
